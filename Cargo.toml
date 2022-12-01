@@ -1,5 +1,5 @@
 [package]
-name = "aleo-prover"
+name = "nbpool-prover"
 version = "0.5.0"
 edition = "2021"
 license = "GPL-3.0-or-later"
@@ -61,7 +61,7 @@ version = "1.0.82"
 features = ["preserve_order"]
 
 [features]
-#cuda = ["snarkvm/cuda"]
+cuda = ["snarkvm/cuda"]
 
 [profile.dev]
 opt-level = 1
