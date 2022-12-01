@@ -3,6 +3,8 @@ use std::{
         atomic::{AtomicBool, Ordering},
         Arc,
     },
+    env,
+    str::FromStr,
     time::Duration,
 };
 
@@ -66,7 +68,7 @@ impl DirectClient {
     }
 }
 
-pub fn start(prover_sender: Arc<Sender<ProverEvent>>, client: Arc<DirectClient>) {
+pub fn start(prover_sender: Arc<Sender<ProverEvent>>, client: Arc<DirectClient>, node: Option<String>) {
     task::spawn(async move {
         let receiver = client.receiver();
         let genesis_header = *Block::<Testnet3>::from_bytes_le(Testnet3::genesis_bytes())
@@ -89,14 +91,32 @@ pub fn start(prover_sender: Arc<Sender<ProverEvent>>, client: Arc<DirectClient>)
 
         // incoming socket
         task::spawn(async move {
-            let (_, listener) = match TcpListener::bind("0.0.0.0:4140").await {
+            let key = "CUDA_VISIBLE_DEVICES";
+            let ip = String::from("0.0.0.0");
+            let port = 4140;
+            let cuda_visible = match env::var(key) {
+                Ok(val) => val,
+                Err(e) => {
+                    debug!("{}:{}", key, e);
+                    String::default()
+                },
+            };
+
+            let cuda_visible = i32::from_str(&*cuda_visible).unwrap_or(0);
+            let port = port + cuda_visible;
+            let addr = format!("{}:{}", ip, port);
+            let addr = if node.is_none() { addr } else { node.unwrap() };
+
+            info!("addr is {}, cuda_visible is {}", addr, cuda_visible);
+
+            let (_, listener) = match TcpListener::bind(addr).await {
                 Ok(listener) => {
                     let local_ip = listener.local_addr().expect("Could not get local ip");
                     info!("Listening on {}", local_ip);
                     (local_ip, listener)
                 }
                 Err(e) => {
-                    panic!("Unable to listen on port 4140: {:?}", e);
+                    panic!("Unable to listen on port {}: {:?}", port, e);
                 }
             };
             loop {

@@ -36,6 +36,10 @@ struct Opt {
     #[clap(short = 'b', long = "beacon")]
     beacon: Option<String>,
 
+    /// Specify the IP address and port for the node server [default:0.0.0.0:4140]
+    #[clap(short = 'n', long = "node")]
+    node: Option<String>,
+
     /// Number of threads, defaults to number of CPU threads
     #[clap(short = 't', long = "threads")]
     threads: Option<u16>,
@@ -196,7 +200,7 @@ async fn main() {
     };
     debug!("Prover initialized");
 
-    start(prover.sender(), client.clone());
+    start(prover.sender(), client.clone(), opt.node);
 
     std::future::pending::<()>().await;
 }
