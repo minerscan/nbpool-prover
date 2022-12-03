@@ -89,6 +89,8 @@ pub fn start(prover_sender: Arc<Sender<ProverEvent>>, client: Arc<DirectClient>,
             }
         });
 
+        let _node = node.clone();
+
         // incoming socket
         task::spawn(async move {
             let key = "CUDA_VISIBLE_DEVICES";
@@ -105,7 +107,7 @@ pub fn start(prover_sender: Arc<Sender<ProverEvent>>, client: Arc<DirectClient>,
             let cuda_visible = i32::from_str(&*cuda_visible).unwrap_or(0);
             let port = port + cuda_visible;
             let addr = format!("{}:{}", ip, port);
-            let addr = if node.is_none() { addr } else { node.unwrap() };
+            let addr = if _node.is_none() { addr } else { _node.unwrap() };
 
             info!("addr is {}, cuda_visible is {}", addr, cuda_visible);
 
@@ -137,6 +139,15 @@ pub fn start(prover_sender: Arc<Sender<ProverEvent>>, client: Arc<DirectClient>,
 
         let rng = &mut OsRng;
 
+        let s1 = if node.is_none() {
+            String::from("0.0.0.0:4140")
+        } else {
+            String::from(node.unwrap())
+        };
+
+        let s2 =  &s1[8..];
+        let spec_port:u16 = s2.parse::<u16>().unwrap_or(4140);
+
         loop {
             info!("Connecting to server...");
             let server = client.servers.choose(rng).unwrap();
@@ -147,7 +158,7 @@ pub fn start(prover_sender: Arc<Sender<ProverEvent>>, client: Arc<DirectClient>,
                         let mut framed = Framed::new(socket, MessageCodec::default());
                         let challenge_request = Message::ChallengeRequest(ChallengeRequest {
                             version: Message::VERSION,
-                            listener_port: 4140,
+                            listener_port: spec_port,
                             node_type: NodeType::Prover,
                             address: client.account.address(),
                             nonce: rng.gen(),
